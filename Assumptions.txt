@@ -1,20 +1,20 @@
 Following Assumptions were made while developing the GlobalBeverageCorporationExchange application
 
 1)- Following attributes would always be greater than Zero
-i)- Stock ParValue
-ii)- Stock Price
-iii)- Trade Quantity
+	i)- Stock ParValue
+	ii)- Stock Price
+	iii)- Trade Quantity
 
-2)- Application is assumed to be single threaded to make sure that 2 different instances of the Exchange do not record
+2)- Volume-Weighted-Stock-Price of any stock would always be 1 Pence (0.01 GBP) if no trade has been recorded for that stock
+in past 5 minutes. Hence minimum value of GBCE-All-Share-Index would be 0.01 GBP.
+
+3)- Application is assumed to be single threaded to make sure that 2 different instances of the Exchange do not record
 trades at the same time. Locking/Unlocking mechanism will have to be implemented for critical sections
 where trades are involved, if the application is multi-threaded. However, the state of the trades would be same across
-two different exchange instances at any point in time, if the trades are recorded sequentially using 2 exchange objects.
-Each of the exchange object can independently calculate Dividend_Yield, P/E ratio, Volume-Weighted-Average-Price and
+different exchange instances at any point in time, if the trades are recorded at different points in time
+using different exchange objects. Each of the exchange object can calculate Dividend_Yield, P/E ratio, Volume-Weighted-Average-Price and
 GBCE-All-Share-Index independently.
 
-3)- Since no Database Connections and I/O are allowed, trades cannot be made to persist permanently. Hence, will cease to
+4)- Since no Database Connections and I/O are allowed, trades cannot be made to persist permanently. Hence, will cease to
 exist when the exchange object is destroyed and will have to be re-recorded every-time.
-
-
-
 
