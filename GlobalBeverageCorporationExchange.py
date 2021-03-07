@@ -3,6 +3,7 @@ from Trade import Trade
 from Stock import Stock
 from Borg import Borg
 from collections import defaultdict
+from sortedcontainers import SortedSet
 
 
 class GlobalBeverageCorporationExchange(Borg):  # using Borg's pattern to make sure Exchange objects share trades
@@ -19,7 +20,7 @@ class GlobalBeverageCorporationExchange(Borg):  # using Borg's pattern to make s
             self.trades = trades
         else:
             if not hasattr(self, "trades"):
-                self.trades = defaultdict(list)
+                self.trades = defaultdict(SortedSet)
 
     @staticmethod
     def calculate_dividend_yield(stock_symbol, price):
@@ -61,7 +62,7 @@ class GlobalBeverageCorporationExchange(Borg):  # using Borg's pattern to make s
         try:
             if stock_symbol in GlobalBeverageCorporationExchange.stock_data:
                 print('Recording Trade :', Trade(stock_symbol, price, timestamp, qty, buy_sell), 'on the Exchange')
-                self.trades[stock_symbol].append(Trade(stock_symbol, price, timestamp, qty, buy_sell))
+                self.trades[stock_symbol].add(Trade(stock_symbol, price, timestamp, qty, buy_sell))
             else:
                 raise Exception("Invalid Stock Symbol : " + stock_symbol)
         except Exception as err:
@@ -74,21 +75,24 @@ class GlobalBeverageCorporationExchange(Borg):  # using Borg's pattern to make s
 
         return report
 
-    def __calculate_volume_weighted_stock_price(self, stock_symbol):  # private method. Reports price in pennies.
+    def __calculate_volume_weighted_stock_price(self, stock_symbol, current_timestamp=None, timestamp_5_min_back=None):
+        # private method. Reports price in pennies.
         try:
             if stock_symbol in GlobalBeverageCorporationExchange.stock_data:
-                current_timestamp = datetime.datetime.now()
-                timestamp_five_min_back = datetime.datetime.now() - datetime.timedelta(minutes=5)
+                if not current_timestamp:
+                    current_timestamp = datetime.datetime.now()
+                if not timestamp_5_min_back:
+                    timestamp_5_min_back = current_timestamp - datetime.timedelta(minutes=5)
+                print("Current Timestamp: ", current_timestamp)
+                print("5minback Timestamp: ", timestamp_5_min_back)
                 sum_qty = 0
                 sum_product_price_qty = 0
-                self.trades[stock_symbol].sort(key=lambda x: x.get_timestamp())  # sorting all trades for the relevant
-                # stock based on increasing order of timestamp
                 for trade in reversed(self.trades[stock_symbol]):  # traversing the trades in reverse order of timestamp
-                    if timestamp_five_min_back <= trade.get_timestamp() <= current_timestamp:
+                    if timestamp_5_min_back <= trade.get_timestamp() <= current_timestamp:
                         print("Trade considered for calculating Volume-Weighed-Stock-Price:", trade)
                         sum_qty += trade.get_qty()
                         sum_product_price_qty += (trade.get_price() * trade.get_qty())
-                    elif trade.get_timestamp() < timestamp_five_min_back:
+                    elif trade.get_timestamp() < timestamp_5_min_back:
                         break
                 if sum_qty == 0:
                     return 1  # If no trades present for relevant stock, assuming Volume-Weighted-Price to be 1 penny
@@ -106,10 +110,13 @@ class GlobalBeverageCorporationExchange(Borg):  # using Borg's pattern to make s
 
     @price_reporter
     def calculate_gbce_all_share_index(self):  # method to report GBCE All Share Index in GBP.
+        current_timestamp = datetime.datetime.now()
+        timestamp_5_min_back = current_timestamp - datetime.timedelta(minutes=5)
         print('Calculating GlobalBeverageCorporationExchange All Share Index:')
         gbce_all_share_index = 1  # default GBCE All share index is 1 penny
         for stock_symbol in GlobalBeverageCorporationExchange.stock_data:
-            gbce_all_share_index *= self.__calculate_volume_weighted_stock_price(stock_symbol)
+            gbce_all_share_index *= self.__calculate_volume_weighted_stock_price(stock_symbol, current_timestamp,
+                                                                                 timestamp_5_min_back)
         n = len(GlobalBeverageCorporationExchange.stock_data)
         return gbce_all_share_index ** (1.0 / n)
 
@@ -148,24 +155,26 @@ if __name__ == '__main__':
     # print(gbce.calculate_pe_ratio('TEA', 10))
     # print(gbce.calculate_pe_ratio('ALE', -100))
 
-    gbce.record_trade('POP', 200, '2021-03-07 14:54:15', 12, 'B')
-    gbce.record_trade('POP', 200, '2021-03-07 14:55:55', 12, 'S')
-    gbce.record_trade('TEA', 425, '2021-03-07 14:54:56', 100, 'S')
-    gbce.record_trade('TEA', 430, '2021-03-07 14:54:44', 100, 'B')
-    gbce.record_trade('ALE', 325, '2021-03-07 14:55:07', 500, 'B')
-    gbce.record_trade('ALE', 320, '2021-03-07 14:54:03', 500, 'S')
-    gbce.record_trade('GIN', 500, '2021-03-07 14:55:07', 200, 'B')
-    gbce.record_trade('GIN', 495, '2021-03-07 14:55:03', 200, 'S')
-    gbce.record_trade('JOE', 753, '2021-03-07 14:54:07', 300, 'B')
-    gbce.record_trade('JOE', 750, '2021-03-07 14:54:03', 300, 'S')
-    gbce.record_trade('KTB', 1500, '2021-03-07 14:55:07', 50, 'B')
-    gbce.record_trade('KTB', 1500, '2021-03-07 14:53:03', 50, 'S')
-    gbce.record_trade('REL', 152, '2021-03-07 14:55:07', 50, 'B')
-    gbce.record_trade('REL', 150, '2021-03-07 14:55:03', 50, 'S')
+    gbce.record_trade('POP', 200, '2021-03-07 23:51:15', 12, 'B')
+    gbce.record_trade('POP', 200, '2021-03-07 23:51:14', 12, 'S')
+    gbce.record_trade('TEA', 425, '2021-03-07 23:50:13', 100, 'S')
+    gbce.record_trade('TEA', 430, '2021-03-07 23:50:14', 100, 'B')
+    gbce.record_trade('ALE', 325, '2021-03-07 23:50:17', 500, 'B')
+    gbce.record_trade('ALE', 320, '2021-03-07 23:50:18', 500, 'S')
+    gbce.record_trade('GIN', 500, '2021-03-07 23:49:19', 200, 'B')
+    gbce.record_trade('GIN', 495, '2021-03-07 23:49:20', 200, 'S')
+    gbce.record_trade('JOE', 753, '2021-03-07 23:49:15', 300, 'B')
+    gbce.record_trade('JOE', 750, '2021-03-07 23:49:16', 300, 'S')
+    gbce.record_trade('KTB', 1500, '2021-03-07 23:48:47', 50, 'B')
+    gbce.record_trade('KTB', 1500, '2021-03-07 23:48:27', 50, 'S')
+    gbce.record_trade('REL', 152, '2021-03-07 23:51:56', 50, 'B')
+    gbce.record_trade('REL', 150, '2021-03-07 23:04:51', 50, 'S')
+    gbce.record_trade('REL', 150, '2021-03-07 23:04:51', 50, 'S')
 
     gbce2 = GlobalBeverageCorporationExchange()
     print("Trades available to another object of GBCE: ")
     for stk, trds in gbce2.trades.items():
+        print(stk)
         for trd in trds:
             print(trd)  # same set of trades available to another object of GBCE
     print(gbce.calculate_volume_weighted_stock_price('TEA'))
@@ -175,6 +184,7 @@ if __name__ == '__main__':
     print(gbce.calculate_volume_weighted_stock_price('GIN'))
     print(gbce.calculate_volume_weighted_stock_price('JOE'))
     print(gbce.calculate_volume_weighted_stock_price('KTB'))
+    print(gbce.calculate_volume_weighted_stock_price('REL'))
 
     print(gbce.calculate_gbce_all_share_index())
     print(gbce2.calculate_gbce_all_share_index())

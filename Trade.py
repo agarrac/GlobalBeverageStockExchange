@@ -10,6 +10,17 @@ class Trade:
 		self.__buySell = buy_sell
 		self.validate_trade_info()
 
+	def __eq__(self, other):
+		return ((self.__stock == other.__stock) and (self.__price == other.__price) and
+				(self.__timestamp == other.__timestamp) and (self.__qty == other.__qty) and
+				(self.__buySell == other.__buySell))
+
+	def __lt__(self, other):
+		return self.__timestamp < other.__timestamp
+
+	def __hash__(self):
+		return hash(str(self))
+
 	def validate_trade_info(self):
 		assert isinstance(self.__stock, str), "Incorrect Stock Symbol : {}".format(self.__stock)
 		assert isinstance(self.__price, (int, float)) and self.__price > 0, "Incorrect Price : {}".format(self.__price)
